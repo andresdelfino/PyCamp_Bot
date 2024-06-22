@@ -11,10 +11,24 @@ from pycamp_bot.commands import schedule
 from pycamp_bot.commands import announcements
 from pycamp_bot.models import models_db_connection
 from pycamp_bot.logger import logger
+from pycamp_bot.utils import escape_markdown
+
 
 async def unknown_command(update, context):
     text = "No reconozco el comando, para ver comandos válidos usá /ayuda"
     await context.bot.send_message(chat_id=update.message.chat_id, text=text)
+
+
+from pycamp_bot.models import Pycampista
+import traceback
+async def error_handler(update, context):
+    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_string = "".join(tb_list)
+    user = Pycampista.get(Pycampista.username == 'adelfino')
+    await context.bot.send_message(
+        chat_id=user.chat_id,
+        text=repr(context.error) + '\n\n' + tb_string + '\n' + f'User: @{update.message.from_user.username}',
+    )
 
 
 def set_handlers(application):
@@ -28,6 +42,7 @@ def set_handlers(application):
     schedule.set_handlers(application)
     announcements.set_handlers(application)
     application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
+    application.add_error_handler(error_handler)
 
 
 if __name__ == '__main__':
